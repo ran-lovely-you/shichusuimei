@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>四柱推命 — 天命鑑定</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;600;700&family=Cinzel:wght@400;600&display=swap');
+
+  :root {
+    --ink: #1a1008;
+    --gold: #c8952a;
+    --gold-light: #e8b84b;
+    --red: #8b1a1a;
+    --cream: #f5f0e8;
+    --paper: #faf6ee;
+    --shadow: rgba(26,16,8,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--ink);
+    color: var(--ink);
+    font-family: 'Noto Serif JP', serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* 背景の天球 */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 20%, #1a0a00 0%, transparent 70%),
+      radial-gradient(ellipse 100% 100% at 50% 100%, #0a0500 0%, #1a1008 50%, #0d0804 100%);
+    z-index: -2;
+  }
+
+  /* 星のキャンバス */
+  #stars-canvas {
+    position: fixed; inset: 0;
+    z-index: -1;
+    opacity: 0.6;
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+
+  /* ヘッダー */
+  header {
+    text-align: center;
+    padding: 60px 0 50px;
+  }
+
+  .header-emblem {
+    width: 80px; height: 80px;
+    margin: 0 auto 20px;
+    position: relative;
+  }
+  .header-emblem svg {
+    width: 100%; height: 100%;
+    animation: rotate-slow 30s linear infinite;
+  }
+  @keyframes rotate-slow { to { transform: rotate(360deg); } }
+
+  header h1 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 300;
+    letter-spacing: 0.5em;
+    color: var(--gold-light);
+    text-shadow: 0 0 30px rgba(200,149,42,0.4), 0 0 60px rgba(200,149,42,0.2);
+    margin-bottom: 12px;
+  }
+  header h1 span { color: #fff; opacity: 0.8; }
+  header p.subtitle {
+    font-size: 0.8rem;
+    letter-spacing: 0.35em;
+    color: rgba(200,149,42,0.6);
+  }
+
+  .divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 30px 0;
+  }
+  .divider::before, .divider::after {
+    content: ''; flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--gold), transparent);
+  }
+  .divider span {
+    color: var(--gold);
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+  }
+
+  /* 入力カード */
+  .card {
+    background: var(--paper);
+    border: 1px solid rgba(200,149,42,0.3);
+    border-radius: 4px;
+    padding: 40px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.5);
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(to right, transparent, var(--gold), var(--gold-light), var(--gold), transparent);
+  }
+
+  .card-title {
+    text-align: center;
+    font-size: 0.75rem;
+    letter-spacing: 0.4em;
+    color: var(--gold);
+    margin-bottom: 30px;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .form-group.full { grid-column: 1 / -1; }
+
+  .form-group label {
+    display: block;
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    color: var(--red);
+    margin-bottom: 8px;
+  }
+
+  .form-group input, .form-group select {
+    width: 100%;
+    padding: 12px 16px;
+    background: #fff;
+    border: 1px solid rgba(139,26,26,0.2);
+    border-radius: 2px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1rem;
+    color: var(--ink);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    appearance: none;
+  }
+  .form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(200,149,42,0.1);
+  }
+
+  .time-note {
+    font-size: 0.65rem;
+    color: #888;
+    margin-top: 6px;
+    letter-spacing: 0.1em;
+  }
+
+  .btn-divine {
+    display: block;
+    width: 100%;
+    margin-top: 32px;
+    padding: 16px;
+    background: linear-gradient(135deg, #7a1010 0%, #8b1a1a 40%, #a02020 60%, #8b1a1a 100%);
+    border: 1px solid rgba(200,149,42,0.4);
+    border-radius: 2px;
+    color: var(--gold-light);
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1rem;
+    letter-spacing: 0.5em;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 20px rgba(139,26,26,0.4);
+  }
+  .btn-divine:hover {
+    background: linear-gradient(135deg, #8b1a1a 0%, #a02020 40%, #b82828 60%, #a02020 100%);
+    box-shadow: 0 6px 30px rgba(139,26,26,0.6), 0 0 20px rgba(200,149,42,0.2);
+    transform: translateY(-1px);
+  }
+  .btn-divine:active { transform: translateY(0); }
+
+  /* 結果 */
+  #result-section {
+    display: none;
+    animation: fadeIn 1s ease forwards;
+  }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+  .result-card {
+    background: var(--paper);
+    border: 1px solid rgba(200,149,42,0.3);
+    border-radius: 4px;
+    padding: 40px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    position: relative;
+  }
+  .result-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(to right, transparent, var(--gold), var(--gold-light), var(--gold), transparent);
+  }
+
+  .result-title {
+    text-align: center;
+    font-size: 0.75rem;
+    letter-spacing: 0.4em;
+    color: var(--gold);
+    margin-bottom: 30px;
+  }
+
+  /* 四柱表 */
+  .shiju-table {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .pillar {
+    background: #fff;
+    border: 1px solid rgba(139,26,26,0.15);
+    border-radius: 3px;
+    padding: 16px 12px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 2px 8px var(--shadow);
+  }
+  .pillar-name {
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    color: var(--red);
+    margin-bottom: 12px;
+  }
+  .pillar-kan {
+    font-size: 1.8rem;
+    font-weight: 600;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .pillar-shi {
+    font-size: 1.8rem;
+    font-weight: 600;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .pillar-elem {
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    color: #888;
+    margin-top: 8px;
+  }
+  .elem-moku { color: #2d6a2d; }
+  .elem-hi   { color: #8b1a1a; }
+  .elem-tsuchi{ color: #8b6914; }
+  .elem-kin  { color: #6b6b6b; }
+  .elem-mizu { color: #1a4a8b; }
+
+  /* 通変星 */
+  .tsuhen-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .tsuhen-box {
+    background: linear-gradient(135deg, #7a1010, #8b1a1a);
+    border-radius: 3px;
+    padding: 10px 8px;
+    text-align: center;
+    color: var(--gold-light);
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    box-shadow: 0 2px 8px rgba(139,26,26,0.3);
+  }
+
+  /* 五行バランス */
+  .gogyou-section {
+    margin-bottom: 32px;
+  }
+  .gogyou-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    color: var(--red);
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .gogyou-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .gogyou-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .gogyou-label {
+    width: 36px;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .gogyou-bar-bg {
+    flex: 1;
+    height: 10px;
+    background: rgba(0,0,0,0.06);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .gogyou-bar-fill {
+    height: 100%;
+    border-radius: 5px;
+    transition: width 1s ease;
+  }
+  .gogyou-count {
+    width: 20px;
+    font-size: 0.7rem;
+    color: #888;
+  }
+
+  /* 十二運 */
+  .juunin-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .juunin-box {
+    background: #fff;
+    border: 1px solid rgba(139,26,26,0.15);
+    border-radius: 3px;
+    padding: 10px 8px;
+    text-align: center;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    color: var(--ink);
+    box-shadow: 0 2px 8px var(--shadow);
+  }
+  .juunin-label {
+    font-size: 0.6rem;
+    color: #888;
+    margin-bottom: 4px;
+  }
+
+  /* 命式解説 */
+  .meishiki-section {
+    background: linear-gradient(135deg, #fff8ee, #fffbf5);
+    border-left: 3px solid var(--gold);
+    padding: 24px;
+    border-radius: 0 3px 3px 0;
+    margin-bottom: 24px;
+  }
+  .meishiki-section h3 {
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    color: var(--gold);
+    margin-bottom: 16px;
+  }
+  .meishiki-section p {
+    font-size: 0.88rem;
+    line-height: 2;
+    color: #333;
+  }
+  .meishiki-section .highlight {
+    color: var(--red);
+    font-weight: 600;
+  }
+
+  /* 格局・用神 */
+  .kakkyoku-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .info-box {
+    background: #fff;
+    border: 1px solid rgba(139,26,26,0.15);
+    border-radius: 3px;
+    padding: 16px;
+    box-shadow: 0 2px 8px var(--shadow);
+  }
+  .info-box-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    color: var(--red);
+    margin-bottom: 8px;
+  }
+  .info-box-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: 0.1em;
+  }
+  .info-box-desc {
+    font-size: 0.7rem;
+    color: #666;
+    margin-top: 6px;
+    line-height: 1.6;
+  }
+
+  /* 大運 */
+  .daiunn-section { margin-bottom: 32px; }
+  .daiunn-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    color: var(--red);
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .daiunn-row {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  .daiunn-item {
+    flex-shrink: 0;
+    background: #fff;
+    border: 1px solid rgba(139,26,26,0.15);
+    border-radius: 3px;
+    padding: 10px 12px;
+    text-align: center;
+    min-width: 64px;
+    box-shadow: 0 2px 8px var(--shadow);
+    font-size: 0.7rem;
+  }
+  .daiunn-age {
+    color: var(--red);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+  .daiunn-kan, .daiunn-shi {
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .daiunn-item.current {
+    background: linear-gradient(135deg, #fff3e0, #fff8ee);
+    border-color: var(--gold);
+    box-shadow: 0 2px 12px rgba(200,149,42,0.25);
+  }
+
+  /* 総合運勢 */
+  .souun-section {
+    margin-bottom: 16px;
+  }
+  .souun-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    color: var(--red);
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .luck-bars {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .luck-item {
+    background: #fff;
+    border: 1px solid rgba(139,26,26,0.15);
+    border-radius: 3px;
+    padding: 12px 16px;
+    box-shadow: 0 2px 8px var(--shadow);
+  }
+  .luck-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: #888;
+    margin-bottom: 8px;
+  }
+  .luck-stars {
+    color: var(--gold);
+    font-size: 0.9rem;
+    letter-spacing: 0.1em;
+  }
+
+  footer {
+    text-align: center;
+    padding: 40px 0 20px;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: rgba(200,149,42,0.3);
+  }
+
+  @media (max-width: 600px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .form-group.full { grid-column: 1; }
+    .shiju-table { grid-template-columns: repeat(2, 1fr); }
+    .tsuhen-row { grid-template-columns: repeat(2, 1fr); }
+    .juunin-row { grid-template-columns: repeat(2, 1fr); }
+    .kakkyoku-grid { grid-template-columns: 1fr; }
+    .luck-bars { grid-template-columns: 1fr; }
+    .card { padding: 24px 20px; }
+    .result-card { padding: 24px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="stars-canvas"></canvas>
+
+<div class="container">
+  <!-- ヘッダー -->
+  <header>
+    <div class="header-emblem">
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="40" cy="40" r="38" stroke="#c8952a" stroke-width="0.8" stroke-dasharray="4 3"/>
+        <circle cx="40" cy="40" r="28" stroke="#c8952a" stroke-width="0.5" opacity="0.5"/>
+        <text x="40" y="46" text-anchor="middle" fill="#c8952a" font-size="22" font-family="serif">天</text>
+        <circle cx="40" cy="6" r="2.5" fill="#c8952a"/>
+        <circle cx="40" cy="74" r="2.5" fill="#c8952a"/>
+        <circle cx="6" cy="40" r="2.5" fill="#c8952a"/>
+        <circle cx="74" cy="40" r="2.5" fill="#c8952a"/>
+        <circle cx="13" cy="13" r="1.5" fill="#c8952a" opacity="0.6"/>
+        <circle cx="67" cy="13" r="1.5" fill="#c8952a" opacity="0.6"/>
+        <circle cx="13" cy="67" r="1.5" fill="#c8952a" opacity="0.6"/>
+        <circle cx="67" cy="67" r="1.5" fill="#c8952a" opacity="0.6"/>
+      </svg>
+    </div>
+    <h1>四　柱　推　命</h1>
+    <p class="subtitle">天 命 を 読 み 解 く 古 の 術</p>
+  </header>
+
+  <!-- 入力フォーム -->
+  <div class="card">
+    <p class="card-title">— 生 年 月 日 時 の 入 力 —</p>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>生 年 月 日</label>
+        <input type="date" id="birthdate" value="1990-01-15">
+      </div>
+      <div class="form-group">
+        <label>出 生 時 刻</label>
+        <select id="birthtime">
+          <option value="-1">不明・わからない</option>
+          <option value="0">子 時（23:00〜01:00）</option>
+          <option value="1">丑 時（01:00〜03:00）</option>
+          <option value="2">寅 時（03:00〜05:00）</option>
+          <option value="3">卯 時（05:00〜07:00）</option>
+          <option value="4">辰 時（07:00〜09:00）</option>
+          <option value="5">巳 時（09:00〜11:00）</option>
+          <option value="6">午 時（11:00〜13:00）</option>
+          <option value="7">未 時（13:00〜15:00）</option>
+          <option value="8">申 時（15:00〜17:00）</option>
+          <option value="9">酉 時（17:00〜19:00）</option>
+          <option value="10">戌 時（19:00〜21:00）</option>
+          <option value="11">亥 時（21:00〜23:00）</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>性 別</label>
+        <select id="gender">
+          <option value="male">男 性</option>
+          <option value="female">女 性</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>お 名 前（任 意）</label>
+        <input type="text" id="username" placeholder="例：山田 太郎">
+      </div>
+    </div>
+    <button class="btn-divine" onclick="divine()">　天　命　を　鑑　定　す　る　</button>
+  </div>
+
+  <div class="divider"><span>✦</span></div>
+
+  <!-- 結果 -->
+  <div id="result-section">
+    <div class="result-card">
+      <p class="result-title" id="result-header">— 命 式 —</p>
+
+      <!-- 四柱 -->
+      <div class="shiju-table" id="shiju-table"></div>
+
+      <!-- 通変星 -->
+      <div class="tsuhen-row" id="tsuhen-row"></div>
+
+      <!-- 五行バランス -->
+      <div class="gogyou-section">
+        <p class="gogyou-title">— 五 行 バ ラ ン ス —</p>
+        <div class="gogyou-bars" id="gogyou-bars"></div>
+      </div>
+
+      <!-- 格局・用神 -->
+      <div class="kakkyoku-grid" id="kakkyoku-grid"></div>
+
+      <!-- 命式解説 -->
+      <div class="meishiki-section" id="meishiki-text"></div>
+
+      <!-- 十二運 -->
+      <div class="juunin-row" id="juunin-row"></div>
+
+      <!-- 大運 -->
+      <div class="daiunn-section">
+        <p class="daiunn-title">— 大 運 —</p>
+        <div class="daiunn-row" id="daiunn-row"></div>
+      </div>
+
+      <!-- 運勢 -->
+      <div class="souun-section">
+        <p class="souun-title">— 各 宮 の 運 勢 —</p>
+        <div class="luck-bars" id="luck-bars"></div>
+      </div>
+    </div>
+    <div class="divider"><span>✦</span></div>
+  </div>
+
+  <footer>四柱推命 天命鑑定 ｜ 完全無料 ｜ 伝統的四柱推命法に基づく算出</footer>
+</div>
+
+<script>
+// ===== 星空アニメーション =====
+const canvas = document.getElementById('stars-canvas');
+const ctx = canvas.getContext('2d');
+let stars = [];
+
+function initStars() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  stars = [];
+  for (let i = 0; i < 200; i++) {
+    stars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.2 + 0.2,
+      a: Math.random(),
+      speed: Math.random() * 0.003 + 0.001
+    });
+  }
+}
+function drawStars() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  stars.forEach(s => {
+    s.a += s.speed;
+    const alpha = (Math.sin(s.a) + 1) / 2 * 0.8 + 0.1;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(200,180,120,${alpha})`;
+    ctx.fill();
+  });
+  requestAnimationFrame(drawStars);
+}
+window.addEventListener('resize', initStars);
+initStars();
+drawStars();
+
+// ===== 四柱推命 計算エンジン =====
+
+// 天干
+const KAN = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+const KAN_YOMI = ['きのえ','きのと','ひのえ','ひのと','つちのえ','つちのと','かのえ','かのと','みずのえ','みずのと'];
+const KAN_ELEM = ['木','木','火','火','土','土','金','金','水','水'];
+const KAN_YIN  = [0,1,0,1,0,1,0,1,0,1]; // 0=陽 1=陰
+
+// 地支
+const SHI = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+const SHI_YOMI = ['ね','うし','とら','う','たつ','み','うま','ひつじ','さる','とり','いぬ','い'];
+const SHI_ELEM = ['水','土','木','木','土','火','火','土','金','金','土','水'];
+
+// 五行色
+const ELEM_CLASS = {'木':'elem-moku','火':'elem-hi','土':'elem-tsuchi','金':'elem-kin','水':'elem-mizu'};
+const ELEM_COLOR = {'木':'#2d6a2d','火':'#8b1a1a','土':'#8b6914','金':'#6b6b6b','水':'#1a4a8b'};
+
+// 通変星
+const TSUH_NAMES = ['比肩','劫財','食神','傷官','偏財','正財','偏官','正官','偏印','印綬'];
+
+// 十二運
+const JUUNIN_NAMES = ['長生','沐浴','冠帯','建禄','帝旺','衰','病','死','墓','絶','胎','養'];
+
+// 格局
+const KAKKYOKU = ['正官格','偏官格','正財格','偏財格','食神格','傷官格','印綬格','偏印格','建禄格','양刃格'];
+
+// ===== 年柱計算 =====
+function getYearPillar(year) {
+  // 甲子年 = 1984年 (甲=0, 子=0)
+  const base = 1984;
+  const diff = year - base;
+  let kan = ((diff % 10) + 10) % 10;
+  let shi = ((diff % 12) + 12) % 12;
+  return { kan, shi };
+}
+
+// ===== 月柱計算 =====
+// 月の干支（節入り月）
+const MONTH_SHI_START = 2; // 寅月=2から始まる
+function getMonthPillar(year, month) {
+  // 月支：寅(2月)=2, 卯(3月)=3, ... 丑(1月)=1
+  const monthShi = [1,2,3,4,5,6,7,8,9,10,11,0]; // 1月→丑(1), 2月→寅(2)...
+  const shi = monthShi[month - 1];
+
+  // 月干：年干から算出
+  const yearKan = getYearPillar(year).kan;
+  // 年干五虎遁
+  // 甲己年→寅月が丙寅
+  const startKan = [2, 4, 6, 8, 0][yearKan % 5]; // 五虎遁の月干開始
+  // 寅月(index 2)からの差
+  const monthIndex = (shi + 10) % 12; // 寅=2を0として
+  const relIdx = (monthIndex - 2 + 12) % 12;
+  const kan = (startKan + relIdx) % 10;
+
+  return { kan, shi };
+}
+
+// ===== 日柱計算 =====
+// ユリウス通日からの算出
+function getJulianDay(year, month, day) {
+  if (month <= 2) { year--; month += 12; }
+  const A = Math.floor(year / 100);
+  const B = 2 - A + Math.floor(A / 4);
+  return Math.floor(365.25 * (year + 4716)) + Math.floor(30.6001 * (month + 1)) + day + B - 1524;
+}
+
+function getDayPillar(year, month, day) {
+  // JD=2451545 (2000/1/1) = 庚辰日
+  // 庚=6, 辰=4
+  const jd = getJulianDay(year, month, day);
+  const baseJD = getJulianDay(2000, 1, 1); // 庚辰
+  const diff = jd - baseJD;
+  let kan = ((6 + diff) % 10 + 10) % 10;
+  let shi = ((4 + diff) % 12 + 12) % 12;
+  return { kan, shi };
+}
+
+// ===== 時柱計算 =====
+function getHourPillar(dayKan, shichen) {
+  // 時支：子=0から始まる
+  const shi = shichen; // 0=子,1=丑...11=亥
+  // 五鼠遁：日干から時干開始を決める
+  const startKan = [0, 2, 4, 6, 8][dayKan % 5];
+  const kan = (startKan + shichen) % 10;
+  return { kan, shi };
+}
+
+// ===== 通変星算出 =====
+function getTsuhen(nisshu_kan, target_kan) {
+  const diff = ((target_kan - nisshu_kan) + 10) % 10;
+  // 0比肩 1劫財 2食神 3傷官 4偏財 5正財 6偏官 7正官 8偏印 9印綬
+  return TSUH_NAMES[diff];
+}
+
+// ===== 十二運算出 =====
+// 日主（日干）と地支から十二運を求める
+const JUUNIN_TABLE = {
+  0: [6,7,8,9,10,11,0,1,2,3,4,5], // 甲 長生=亥
+  1: [6,5,4,3,2,1,0,11,10,9,8,7], // 乙（逆）
+  2: [2,3,4,5,6,7,8,9,10,11,0,1], // 丙 長生=寅
+  3: [2,1,0,11,10,9,8,7,6,5,4,3], // 丁（逆）
+  4: [2,3,4,5,6,7,8,9,10,11,0,1], // 戊 長生=寅（甲と同）
+  5: [2,1,0,11,10,9,8,7,6,5,4,3], // 己（逆）
+  6: [3,4,5,6,7,8,9,10,11,0,1,2], // 庚 長生=巳
+  7: [3,2,1,0,11,10,9,8,7,6,5,4], // 辛（逆）
+  8: [9,10,11,0,1,2,3,4,5,6,7,8], // 壬 長生=申
+  9: [9,8,7,6,5,4,3,2,1,0,11,10], // 癸（逆）
+};
+function getJuunin(dayKan, shi) {
+  const table = JUUNIN_TABLE[dayKan];
+  return JUUNIN_NAMES[table[shi]];
+}
+
+// ===== 格局判定 =====
+function getKakkyoku(dayKan, monthKan, monthShi) {
+  const dayElem = KAN_ELEM[dayKan];
+  const monthElem = KAN_ELEM[monthKan];
+
+  // 建禄・羊刃の簡易判定
+  const monthJuunin = getJuunin(dayKan, monthShi);
+  if (monthJuunin === '建禄') return { name: '建禄格', desc: '月支建禄格。実力と努力で成功を掴む命式です。自力で道を切り開く強い意志を持ちます。' };
+  if (monthJuunin === '帝旺') return { name: '羊刃格', desc: '月支羊刃格。強烈な行動力と決断力を持つ命式。情熱的で妥協を許さない気質があります。' };
+
+  // 通変星による格局
+  const tsuhen = getTsuhen(dayKan, monthKan);
+  const kakDesc = {
+    '正官格': '正官格。誠実で責任感が強く、社会的地位を得やすい命式です。規律と秩序を重んじます。',
+    '偏官格': '偏官格（七殺格）。大胆で行動力があり、逆境に強い命式。変化の多い人生を歩みます。',
+    '正財格': '正財格。堅実で信頼性が高く、財を積み上げる才能に恵まれた命式です。',
+    '偏財格': '偏財格。社交的で投機的才能に恵まれ、多方面で活躍できる命式です。',
+    '食神格': '食神格。才能豊かで温厚、食福・財福に恵まれた命式です。芸術的センスも高い。',
+    '傷官格': '傷官格。創造性と独創性に優れ、芸術・技術方面で才能を発揮する命式です。',
+    '印綬格': '印綬格。知性と学問に優れ、精神的な豊かさを重んじる命式です。教育・文化向き。',
+    '偏印格': '偏印格（梟神格）。独自の感性と直感力を持ち、独創的な道を歩む命式です。',
+  };
+  return { name: tsuhen + '格', desc: kakDesc[tsuhen + '格'] || '特殊格局。独自の運命の流れを持つ命式です。' };
+}
+
+// ===== 用神判定（簡易）=====
+function getYojin(dayKan, gogyou) {
+  const dayElem = KAN_ELEM[dayKan];
+  // 五行の過不足から用神を判断
+  const elems = ['木','火','土','金','水'];
+  const min = Math.min(...elems.map(e => gogyou[e] || 0));
+  const yojinElem = elems.find(e => (gogyou[e] || 0) === min);
+
+  const yojinKan = KAN.find((k, i) => KAN_ELEM[i] === yojinElem);
+  const desc = {
+    '木': '木気（甲・乙）が用神。成長・発展・創造の力が命式を助けます。緑・青色が吉。',
+    '火': '火気（丙・丁）が用神。情熱・輝き・文明の力が命式を助けます。赤・朱色が吉。',
+    '土': '土気（戊・己）が用神。安定・基盤・信頼の力が命式を助けます。黄・茶色が吉。',
+    '金': '金気（庚・辛）が用神。決断・精錬・変革の力が命式を助けます。白・銀色が吉。',
+    '水': '水気（壬・癸）が用神。知恵・流動・潜在力が命式を助けます。黒・紺色が吉。',
+  };
+  return { elem: yojinElem, kan: yojinKan, desc: desc[yojinElem] };
+}
+
+// ===== 大運計算 =====
+function getDaiunn(birthYear, birthMonth, birthDay, gender) {
+  // 大運数：次の節入りまでの日数÷3
+  // 簡易計算：月柱を起点に10年ごと
+  const yearPillar = getYearPillar(birthYear);
+  const isYang = KAN_YIN[yearPillar.kan] === 0; // 年干が陽か陰か
+  const isForward = (gender === 'male' && isYang) || (gender === 'female' && !isYang);
+
+  const monthP = getMonthPillar(birthYear, birthMonth);
+  let idx = monthP.kan * 1;
+  let shiIdx = monthP.shi;
+
+  const daiunns = [];
+  for (let i = 0; i < 8; i++) {
+    if (isForward) {
+      idx = (idx + 1) % 10;
+      shiIdx = (shiIdx + 1) % 12;
+    } else {
+      idx = (idx - 1 + 10) % 10;
+      shiIdx = (shiIdx - 1 + 12) % 12;
+    }
+    const startAge = (i + 1) * 10 - 9; // 1歳,11歳,21歳...
+    daiunns.push({ kan: idx, shi: shiIdx, startAge: i * 10 + 1 });
+  }
+  return daiunns;
+}
+
+// ===== 命式総合鑑定文 =====
+function generateReading(dayKan, yearPillar, monthPillar, hourPillar, kakkyoku, yojin, gogyou, gender) {
+  const dayElem = KAN_ELEM[dayKan];
+  const personality = {
+    '甲': '真っ直ぐな大木のような存在感を持ち、リーダー気質で理想を高く掲げます。',
+    '乙': '柔軟性と粘り強さを持つ草花のように、環境に適応しながら着実に成長します。',
+    '丙': '太陽のように明るく活発で、周囲を照らす存在感があります。情熱的で直感力に優れます。',
+    '丁': 'ろうそくの炎のように繊細かつ温かく、深い洞察力と芸術的感性を持ちます。',
+    '戊': '大山のような揺るぎない安定感があり、信頼と包容力で周囲を支えます。',
+    '己': '大地のように豊かな包容力を持ち、地道な努力で確実に成果を積み上げます。',
+    '庚': '刀剣のように鋭い判断力と行動力があり、困難に真正面から立ち向かいます。',
+    '辛': '磨かれた宝石のように精錬された美意識と完璧主義的な性質を持ちます。',
+    '壬': '大海のような深みと包容力があり、知恵と適応力に優れた柔軟な思考の持ち主です。',
+    '癸': '清らかな雨水のように澄んだ直感と共感力を持ち、物事の本質を見抜く力があります。',
+  };
+
+  const dayKanName = KAN[dayKan];
+  const p = personality[dayKanName];
+
+  const elems = ['木','火','土','金','水'];
+  const dominant = elems.reduce((a, b) => (gogyou[a] || 0) >= (gogyou[b] || 0) ? a : b);
+  const elemDesc = {
+    '木': '木の気が強く、向上心と創造性に満ちた運命の持ち主です。',
+    '火': '火の気が強く、情熱と行動力で人生を切り開く運命を持ちます。',
+    '土': '土の気が強く、安定と信頼を土台とした着実な人生歩みます。',
+    '金': '金の気が強く、決断力と意志の強さで高い目標を達成できます。',
+    '水': '水の気が強く、知恵と柔軟性で様々な状況を乗り越えられます。',
+  };
+
+  return `<h3>— 命 式 総 合 解 説 —</h3>
+<p>日干は<span class="highlight">「${dayKanName}（${KAN_YOMI[dayKan]}）」</span>。${p}<br><br>
+五行では<span class="highlight">${dominant}の気</span>が命式を支配しています。${elemDesc[dominant]}<br><br>
+格局は<span class="highlight">「${kakkyoku.name}」</span>。${kakkyoku.desc}<br><br>
+用神は<span class="highlight">「${yojin.elem}気」</span>。${yojin.desc}<br><br>
+${gender === 'male' ? '男性' : '女性'}の命式として、社会的な活躍と内面の充実を両立させる運命の流れを持っています。大運の流れに注目し、各時期の変化を意識することで、より豊かな人生を歩むことができるでしょう。</p>`;
+}
+
+// ===== メイン鑑定関数 =====
+function divine() {
+  const dateStr = document.getElementById('birthdate').value;
+  if (!dateStr) { alert('生年月日を入力してください。'); return; }
+
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const shichen = parseInt(document.getElementById('birthtime').value);
+  const gender = document.getElementById('gender').value;
+  const name = document.getElementById('username').value;
+
+  // 四柱算出
+  const yearP  = getYearPillar(year);
+  const monthP = getMonthPillar(year, month);
+  const dayP   = getDayPillar(year, month, day);
+  const hourP  = shichen >= 0 ? getHourPillar(dayP.kan, shichen) : null;
+
+  const pillars = [
+    { name: '年　柱', ...yearP },
+    { name: '月　柱', ...monthP },
+    { name: '日　柱', ...dayP },
+    { name: '時　柱', ...(hourP || { kan: -1, shi: -1 }), unknown: !hourP },
+  ];
+
+  // 五行カウント
+  const gogyou = { '木':0, '火':0, '土':0, '金':0, '水':0 };
+  pillars.forEach(p => {
+    if (p.kan >= 0) gogyou[KAN_ELEM[p.kan]]++;
+    if (p.shi >= 0) gogyou[SHI_ELEM[p.shi]]++;
+  });
+
+  // 格局・用神
+  const kakkyoku = getKakkyoku(dayP.kan, monthP.kan, monthP.shi);
+  const yojin = getYojin(dayP.kan, gogyou);
+
+  // 大運
+  const daiunns = getDaiunn(year, month, day, gender);
+  const currentAge = new Date().getFullYear() - year;
+
+  // ===== UI描画 =====
+  // ヘッダー
+  document.getElementById('result-header').textContent =
+    `— ${name ? name + ' 様の' : ''}命 式 —`;
+
+  // 四柱表
+  const shijuTable = document.getElementById('shiju-table');
+  shijuTable.innerHTML = pillars.map(p => {
+    if (p.unknown) {
+      return `<div class="pillar">
+        <div class="pillar-name">${p.name}</div>
+        <div class="pillar-kan" style="color:#ccc;font-size:1.2rem">不明</div>
+        <div class="pillar-shi" style="color:#ccc;font-size:1.2rem">不明</div>
+      </div>`;
+    }
+    const kElem = KAN_ELEM[p.kan];
+    const sElem = SHI_ELEM[p.shi];
+    return `<div class="pillar">
+      <div class="pillar-name">${p.name}</div>
+      <div class="pillar-kan ${ELEM_CLASS[kElem]}">${KAN[p.kan]}</div>
+      <div class="pillar-elem">${KAN_YOMI[p.kan]}</div>
+      <div class="pillar-shi ${ELEM_CLASS[sElem]}" style="margin-top:8px">${SHI[p.shi]}</div>
+      <div class="pillar-elem">${SHI_YOMI[p.shi]}</div>
+      <div class="pillar-elem" style="margin-top:4px">${kElem}・${sElem}</div>
+    </div>`;
+  }).join('');
+
+  // 通変星
+  const tsuhenRow = document.getElementById('tsuhen-row');
+  tsuhenRow.innerHTML = pillars.map(p => {
+    if (p.unknown) return `<div class="tsuhen-box">—</div>`;
+    const t = getTsuhen(dayP.kan, p.kan);
+    return `<div class="tsuhen-box">${t}</div>`;
+  }).join('');
+
+  // 五行バランス
+  const total = Object.values(gogyou).reduce((a,b) => a+b, 0);
+  const elems = ['木','火','土','金','水'];
+  const gogyouBars = document.getElementById('gogyou-bars');
+  gogyouBars.innerHTML = elems.map(e => {
+    const count = gogyou[e] || 0;
+    const pct = total > 0 ? (count / total * 100) : 0;
+    const colors = {'木':'#2d6a2d','火':'#8b1a1a','土':'#8b6914','金':'#6b6b6b','水':'#1a4a8b'};
+    return `<div class="gogyou-bar-row">
+      <span class="gogyou-label ${ELEM_CLASS[e]}">${e}</span>
+      <div class="gogyou-bar-bg">
+        <div class="gogyou-bar-fill" style="width:${pct}%;background:${colors[e]}"></div>
+      </div>
+      <span class="gogyou-count">${count}</span>
+    </div>`;
+  }).join('');
+
+  // 格局・用神
+  const kakkyokuGrid = document.getElementById('kakkyoku-grid');
+  kakkyokuGrid.innerHTML = `
+    <div class="info-box">
+      <div class="info-box-label">格　局</div>
+      <div class="info-box-value">${kakkyoku.name}</div>
+      <div class="info-box-desc">${kakkyoku.desc.substring(0, 30)}…</div>
+    </div>
+    <div class="info-box">
+      <div class="info-box-label">用　神</div>
+      <div class="info-box-value ${ELEM_CLASS[yojin.elem]}">${yojin.elem}（${yojin.kan || ''}）</div>
+      <div class="info-box-desc">${yojin.desc.substring(0, 30)}…</div>
+    </div>`;
+
+  // 命式解説
+  document.getElementById('meishiki-text').innerHTML =
+    generateReading(dayP.kan, yearP, monthP, hourP, kakkyoku, yojin, gogyou, gender);
+
+  // 十二運
+  const juuninRow = document.getElementById('juunin-row');
+  juuninRow.innerHTML = pillars.map(p => {
+    if (p.unknown) return `<div class="juunin-box"><div class="juunin-label">時柱</div>—</div>`;
+    const labels = ['年柱','月柱','日柱','時柱'];
+    const j = getJuunin(dayP.kan, p.shi);
+    return `<div class="juunin-box"><div class="juunin-label">${labels[pillars.indexOf(p)]}</div>${j}</div>`;
+  }).join('');
+
+  // 大運
+  const daiunns_row = document.getElementById('daiunn-row');
+  daiunns_row.innerHTML = daiunns.map(d => {
+    const isCurrent = currentAge >= d.startAge && currentAge < d.startAge + 10;
+    return `<div class="daiunn-item${isCurrent ? ' current' : ''}">
+      <div class="daiunn-age">${d.startAge}〜${d.startAge+9}歳${isCurrent ? '★' : ''}</div>
+      <div class="daiunn-kan ${ELEM_CLASS[KAN_ELEM[d.kan]]}">${KAN[d.kan]}</div>
+      <div class="daiunn-shi ${ELEM_CLASS[SHI_ELEM[d.shi]]}">${SHI[d.shi]}</div>
+    </div>`;
+  }).join('');
+
+  // 運勢スコア（五行バランスから算出）
+  const luckItems = [
+    { label: '仕事・事業運', elems: ['金','木'] },
+    { label: '恋愛・結婚運', elems: ['火','水'] },
+    { label: '金銭・財産運', elems: ['金','土'] },
+    { label: '健康・体力運', elems: ['木','水'] },
+    { label: '家族・人間関係運', elems: ['土','火'] },
+    { label: '学業・知恵運', elems: ['水','木'] },
+  ];
+  const luckBars = document.getElementById('luck-bars');
+  luckBars.innerHTML = luckItems.map(item => {
+    const score = item.elems.reduce((acc, e) => acc + (gogyou[e] || 0), 0);
+    const maxScore = 4;
+    const stars = Math.round(score / maxScore * 5);
+    const filled = Math.max(1, Math.min(5, stars + Math.floor(Math.random() * 2)));
+    return `<div class="luck-item">
+      <div class="luck-label">${item.label}</div>
+      <div class="luck-stars">${'★'.repeat(filled)}${'☆'.repeat(5-filled)}</div>
+    </div>`;
+  }).join('');
+
+  // 表示
+  const rs = document.getElementById('result-section');
+  rs.style.display = 'block';
+  rs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+</body>
+</html>
